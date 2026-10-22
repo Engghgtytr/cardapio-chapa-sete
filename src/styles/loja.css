@@ -1,0 +1,588 @@
+/* ---------- Página da loja ---------- */
+.loja {
+  overflow-x: clip;
+}
+
+/* Topo */
+.hero {
+  position: relative;
+  min-height: 100svh;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  padding: 20px 16px 48px;
+  isolation: isolate;
+}
+
+.hero__bg {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 60% 50%;
+}
+
+/* O <picture> fica fora da grade do topo, atrás de tudo, como a imagem. */
+.hero picture {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+}
+
+/* O vídeo começa invisível sobre o pôster e aparece quando já está tocando. */
+.hero__video {
+  opacity: 0;
+  transition: opacity 400ms ease;
+}
+
+.hero__video.is-playing {
+  opacity: 1;
+}
+
+.hero__toggle {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+}
+
+/* Escurece só onde fica o texto, para a foto continuar viva. */
+.hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(to top, rgb(23 18 14 / 0.95) 0%, rgb(23 18 14 / 0.55) 45%, rgb(23 18 14 / 0.1) 75%),
+    linear-gradient(to bottom, rgb(23 18 14 / 0.6), transparent 22%);
+}
+
+.hero__nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.hero__link {
+  font-weight: 600;
+  text-decoration: none;
+  padding: 10px 4px;
+}
+
+.hero__link:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.hero__content {
+  align-self: end;
+  max-width: 52rem;
+  display: grid;
+  justify-items: start;
+  gap: 16px;
+  animation: rise 400ms var(--ease-out) both;
+}
+
+.hero__title {
+  font-size: var(--step-4);
+}
+
+.hero__text {
+  max-width: 34rem;
+  font-size: var(--step-1);
+  color: #e9dfd0;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+@media (min-width: 900px) {
+  .hero {
+    padding: 28px 48px 72px;
+  }
+}
+
+/* ---------- Como nasce um smash ----------
+   Sem a classe .smash--pinned (sem JS ou "reduzir movimento"): passos empilhados. */
+.smash {
+  background: var(--chapa);
+}
+
+.smash__stage {
+  padding: 72px 16px;
+}
+
+.smash__title {
+  font-size: var(--step-3);
+  margin-bottom: 32px;
+}
+
+.smash__steps {
+  display: grid;
+  gap: 40px;
+}
+
+.smash__photo img {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  border-radius: var(--radius-m);
+}
+
+.smash__caption {
+  margin-top: 16px;
+  max-width: 30rem;
+}
+
+.smash__caption h3 {
+  font-stretch: 125%;
+  font-weight: 800;
+  font-size: var(--step-2);
+  line-height: 1.1;
+  margin: 4px 0 8px;
+}
+
+.smash__caption p:last-child {
+  color: #e9dfd0;
+  font-size: var(--step-1);
+}
+
+.smash__count {
+  color: var(--cheddar);
+  font-weight: 700;
+  font-size: var(--step--1);
+  font-variant-numeric: tabular-nums;
+}
+
+.smash__progress {
+  display: none;
+}
+
+/* Versão com a tela travada: 400vh de rolagem para 100vh de palco parado. */
+.smash--pinned {
+  height: 400vh;
+}
+
+.smash--pinned .smash__stage {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  padding: 0;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.smash--pinned .smash__title {
+  position: absolute;
+  z-index: 2;
+  top: 24px;
+  left: 16px;
+  right: 16px;
+  font-size: var(--step-2);
+  margin: 0;
+}
+
+.smash--pinned .smash__steps {
+  display: block;
+}
+
+/* No celular, foto e legenda ficam juntas, centralizadas na altura da tela. */
+.smash--pinned .smash__step {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 20px;
+  padding: 76px 16px 64px;
+}
+
+/* A foto do passo atual aparece por cima da anterior, num quadro 4:5.
+   Não ocupa a tela toda: as fotos são em pé ou quadradas e ficariam ampliadas e cortadas. */
+.smash--pinned .smash__photo {
+  align-self: center;
+  width: min(100%, calc((100svh - 360px) * 0.8));
+  aspect-ratio: 4 / 5;
+  opacity: 0;
+  transition: opacity 500ms ease;
+}
+
+.smash--pinned .smash__photo img {
+  height: 100%;
+  aspect-ratio: auto;
+}
+
+.smash__video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: var(--radius-m);
+  background: var(--chapa-2);
+}
+
+.smash__toggle {
+  position: absolute;
+  z-index: 2;
+  right: 16px;
+  bottom: 14px;
+}
+
+/* A legenda entra com fade e uma subida curta. */
+/* Altura mínima igual em todos os passos: a foto não "pula" quando a legenda muda de tamanho. */
+.smash--pinned .smash__caption {
+  min-height: 9.5rem;
+  margin: 0;
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 400ms var(--ease-out), transform 400ms var(--ease-out);
+}
+
+.smash--pinned .is-active .smash__photo,
+.smash--pinned .is-active .smash__caption {
+  opacity: 1;
+}
+
+.smash--pinned .is-active .smash__caption {
+  transform: none;
+  transition-delay: 120ms;
+}
+
+.smash--pinned .smash__progress {
+  display: block;
+  position: absolute;
+  z-index: 2;
+  left: 16px;
+  right: 72px; /* espaço para o botão de pausa */
+  bottom: 32px;
+  height: 3px;
+  border-radius: 3px;
+  background: rgb(244 237 225 / 0.2);
+  overflow: hidden;
+}
+
+.smash__progress span {
+  display: block;
+  height: 100%;
+  background: var(--cheddar);
+  transform: scaleX(0.25);
+  transform-origin: left;
+  transition: transform 400ms var(--ease-out);
+}
+
+@media (min-width: 900px) {
+  .smash__stage {
+    padding: 112px 48px;
+  }
+
+  .smash__steps {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 32px;
+  }
+
+  .smash--pinned .smash__title,
+  .smash--pinned .smash__caption,
+  .smash--pinned .smash__progress {
+    left: 48px;
+  }
+
+  .smash--pinned .smash__title {
+    top: 40px;
+  }
+
+  /* Na tela larga, a legenda fica à esquerda e a foto à direita, centralizada na altura. */
+  .smash--pinned .smash__step {
+    display: block;
+    padding: 0;
+  }
+
+  .smash--pinned .smash__caption {
+    position: absolute;
+    top: 50%;
+    width: min(30rem, 40%);
+    min-height: 0;
+    transform: translateY(calc(-50% + 16px));
+  }
+
+  .smash--pinned .is-active .smash__caption {
+    transform: translateY(-50%);
+  }
+
+  .smash--pinned .smash__caption h3 {
+    font-size: var(--step-3);
+    margin: 8px 0 14px;
+  }
+
+  .smash--pinned .smash__photo {
+    position: absolute;
+    top: 50%;
+    left: auto;
+    right: max(48px, 8vw);
+    width: auto;
+    height: min(78svh, 720px);
+    transform: translateY(-50%);
+  }
+
+  .smash--pinned .smash__progress {
+    right: auto;
+    width: 320px;
+    bottom: 48px;
+  }
+
+  .smash__toggle {
+    right: 48px;
+    bottom: 30px;
+  }
+
+  .hero__toggle {
+    right: 48px;
+    bottom: 32px;
+  }
+}
+
+/* ---------- Cartazes ---------- */
+.rail-section {
+  padding: 56px 0 8px;
+}
+
+.rail-section__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 16px;
+  margin-bottom: 20px;
+}
+
+.rail-section h2 {
+  font-size: var(--step-3);
+}
+
+.text-link {
+  flex: none;
+  color: var(--cheddar);
+  font-weight: 700;
+  text-underline-offset: 4px;
+}
+
+.rail {
+  display: flex;
+  gap: 14px;
+  padding: 0 16px 16px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding: 0 16px;
+  scrollbar-width: thin;
+  scrollbar-color: #4a3d32 transparent;
+}
+
+.poster {
+  flex: 0 0 62vw;
+  max-width: 260px;
+  scroll-snap-align: start;
+}
+
+.poster a {
+  display: grid;
+  gap: 2px;
+  text-decoration: none;
+}
+
+.poster img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  border-radius: var(--radius-m);
+  margin-bottom: 10px;
+  background: var(--chapa-2);
+}
+
+.poster__name {
+  font-weight: 700;
+}
+
+.poster__price {
+  color: var(--fumo);
+  font-variant-numeric: tabular-nums;
+}
+
+.poster a:hover .poster__name {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Esqueleto do cartaz enquanto os dados chegam: mesma altura do cartaz real
+   (imagem 4:5 + nome + preço), para a página não "pular". */
+.poster--skeleton span {
+  display: block;
+  aspect-ratio: 4 / 5;
+  margin-bottom: 58px;
+  border-radius: var(--radius-m);
+  background: var(--chapa-2);
+}
+
+@media (min-width: 900px) {
+  .rail-section {
+    padding-top: 80px;
+  }
+
+  .rail-section__head,
+  .rail {
+    padding-inline: 48px;
+  }
+
+  .rail {
+    scroll-padding: 0 48px;
+  }
+}
+
+/* ---------- Onde estamos ---------- */
+.visit {
+  padding: 72px 16px;
+}
+
+.visit h2 {
+  font-size: var(--step-3);
+  margin-bottom: 28px;
+}
+
+.visit__grid {
+  display: grid;
+  gap: 32px;
+}
+
+.visit h3 {
+  font-size: var(--step--1);
+  font-weight: 700;
+  color: var(--cheddar);
+  margin-bottom: 8px;
+}
+
+.visit__grid > div {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  justify-items: start;
+}
+
+.hours {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 4px 20px;
+}
+
+.hours dt {
+  color: var(--fumo);
+}
+
+@media (min-width: 900px) {
+  .visit {
+    padding: 112px 48px;
+  }
+
+  .visit__grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 48px;
+  }
+}
+
+.footer {
+  display: grid;
+  gap: 8px;
+  padding: 28px 16px 40px;
+  border-top: 1px solid #3a2f26;
+  color: var(--fumo);
+  font-size: var(--step--1);
+}
+
+.footer a {
+  color: var(--papel);
+  text-underline-offset: 3px;
+}
+
+.footer__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 20px;
+}
+
+/* ---------- Páginas de texto (privacidade) ---------- */
+.doc {
+  min-height: 100svh;
+  background: var(--papel);
+  color: var(--tinta);
+}
+
+.doc__top {
+  padding: 12px 16px;
+  background: var(--chapa);
+  color: var(--papel);
+}
+
+.doc__body {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 40px 16px 64px;
+}
+
+.doc__body h1 {
+  font-size: var(--step-3);
+  margin-bottom: 16px;
+}
+
+.doc__body h2 {
+  font-size: var(--step-1);
+  margin: 32px 0 8px;
+}
+
+.doc__body p + p {
+  margin-top: 12px;
+}
+
+.doc__lead {
+  font-size: var(--step-1);
+  color: var(--tinta-2);
+}
+
+.doc__list {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.doc__back {
+  margin-top: 40px;
+}
+
+.doc__body a {
+  font-weight: 700;
+  text-underline-offset: 3px;
+}
+
+@media (min-width: 900px) {
+  .doc__top {
+    padding: 16px 48px;
+  }
+}
+
+@media (min-width: 900px) {
+  .footer {
+    padding-inline: 48px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero__content {
+    animation-name: fade;
+  }
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}

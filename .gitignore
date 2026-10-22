@@ -1,0 +1,18 @@
+node_modules/
+dist/
+
+# Variáveis de ambiente reais nunca vão para o Git
+.env
+.env.local
+.env.*.local
+
+.DS_Store
+Thumbs.db
+*.log
+
+# Cache de ferramentas locais
+.impeccable/
+
+# Fotos e vídeos originais da IA (150 MB). As versões otimizadas que o site usa
+# ficam em public/ e vão para o Git; os originais só servem para "npm run imagens" e "npm run videos".
+imagens-ia/

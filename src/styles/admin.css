@@ -1,0 +1,474 @@
+/* ---------- Painel do dono: claro como o cardápio, feito para usar no celular ---------- */
+.admin {
+  min-height: 100svh;
+  background: var(--papel);
+  color: var(--tinta);
+}
+
+.admin--center {
+  display: grid;
+  place-items: center;
+  padding: 24px 16px;
+}
+
+.admin-loading {
+  padding: 48px 16px;
+  color: var(--tinta-2);
+  text-align: center;
+}
+
+/* Entrar */
+.login {
+  display: grid;
+  gap: 16px;
+  width: 100%;
+  max-width: 400px;
+}
+
+.login .logo {
+  color: var(--tinta);
+}
+
+.login .logo__mark path {
+  fill: var(--papel);
+}
+
+.login h1 {
+  font-size: var(--step-3);
+}
+
+.login p {
+  color: var(--tinta-2);
+}
+
+.login strong {
+  color: var(--tinta);
+}
+
+.login .muted {
+  color: var(--tinta-2);
+}
+
+.admin-form {
+  display: grid;
+  gap: 18px;
+}
+
+.field input[type='email'],
+.field input[type='password'],
+.field input[type='tel'],
+.field input[type='time'],
+.field select {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--linha);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--tinta);
+  font: inherit;
+  font-size: 1rem;
+}
+
+.field [aria-invalid] {
+  border-color: var(--ketchup);
+}
+
+.form-error {
+  color: var(--ketchup);
+  font-weight: 600;
+}
+
+.form-error:empty {
+  display: none;
+}
+
+.field__count {
+  justify-self: end;
+  color: var(--tinta-2);
+  font-size: var(--step--1);
+  font-variant-numeric: tabular-nums;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* .field .check: vence a regra ".field input" dos campos de texto. */
+.check input,
+.field .check input {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  accent-color: var(--chapa);
+}
+
+/* Topo */
+.admin-top {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: var(--chapa);
+  color: var(--papel);
+}
+
+.admin-top .logo__name small {
+  display: none;
+}
+
+.admin-nav {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.admin-nav a,
+.admin-out {
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.admin-nav a[aria-current] {
+  background: rgb(244 237 225 / 0.14);
+}
+
+.admin-out {
+  color: var(--fumo);
+}
+
+.admin-nav a:hover,
+.admin-out:hover {
+  background: rgb(244 237 225 / 0.08);
+}
+
+@media (max-width: 400px) {
+  .admin-top .logo__name {
+    display: none;
+  }
+}
+
+.demo-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 16px;
+  padding: 10px 16px;
+  background: #fbe3b0;
+  color: var(--cheddar-ink);
+  font-size: 0.9375rem;
+}
+
+.admin-main {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 24px 16px 64px;
+}
+
+.admin-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.admin-head h1 {
+  font-size: var(--step-3);
+}
+
+.admin-hint {
+  margin-top: 12px;
+  color: var(--tinta-2);
+}
+
+.admin-section {
+  margin-top: 28px;
+}
+
+.admin-section h2 {
+  font-size: var(--step-1);
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--linha);
+}
+
+/* Linha de prato */
+.admin-item {
+  display: grid;
+  grid-template-columns: 56px 1fr auto;
+  grid-template-areas:
+    'photo info edit'
+    'photo switch switch';
+  align-items: center;
+  gap: 4px 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--linha);
+}
+
+.admin-item__photo {
+  grid-area: photo;
+  width: 56px;
+  height: 56px;
+  border-radius: 6px;
+  background: var(--linha);
+  overflow: hidden;
+  align-self: start;
+}
+
+.admin-item__photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.admin-item__info {
+  grid-area: info;
+  min-width: 0;
+}
+
+.admin-item__name {
+  font-weight: 700;
+}
+
+.admin-item__meta {
+  color: var(--tinta-2);
+  font-size: 0.9375rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-item--hidden .admin-item__name,
+.admin-item--hidden .admin-item__photo {
+  opacity: 0.55;
+}
+
+.tag {
+  color: var(--ketchup);
+  font-weight: 600;
+}
+
+.admin-item .switch {
+  grid-area: switch;
+}
+
+.admin-edit {
+  grid-area: edit;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--linha);
+  border-radius: 6px;
+  background: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.admin-edit:hover {
+  border-color: var(--tinta-2);
+}
+
+@media (min-width: 600px) {
+  .admin-item {
+    grid-template-columns: 56px 1fr auto auto;
+    grid-template-areas: 'photo info switch edit';
+    gap: 16px;
+  }
+}
+
+/* Interruptor "Tem hoje": checkbox de verdade (teclado e leitor de tela), com outra cara */
+.switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  cursor: pointer;
+}
+
+.switch input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.switch__track {
+  position: relative;
+  flex: none;
+  width: 44px;
+  height: 26px;
+  border-radius: 13px;
+  background: #c9bba6;
+  transition: background-color 160ms ease;
+}
+
+.switch__track::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.2);
+  transition: transform 200ms var(--ease-out);
+}
+
+.switch input:checked + .switch__track {
+  background: #1f8a4c;
+}
+
+.switch input:checked + .switch__track::after {
+  transform: translateX(18px);
+}
+
+.switch input:focus-visible + .switch__track {
+  outline: 3px solid var(--cheddar);
+  outline-offset: 2px;
+}
+
+.switch input:disabled + .switch__track {
+  opacity: 0.6;
+}
+
+/* Editor de prato (usa o painel .sheet da sacola) */
+.admin-sheet .sheet__body {
+  padding-top: 4px;
+}
+
+.photo-field {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.photo-field__preview {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 96px;
+  height: 96px;
+  border-radius: 8px;
+  background: var(--linha);
+  color: var(--tinta-2);
+  font-size: var(--step--1);
+  overflow: hidden;
+}
+
+.photo-field__preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.photo-field__side {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+}
+
+/* Foco do teclado no campo de arquivo (escondido) aparece no botão que o abre. */
+.photo-field:has(input:focus-visible) label.btn {
+  outline: 3px solid var(--cheddar);
+  outline-offset: 2px;
+}
+
+/* Horários */
+.week {
+  display: grid;
+  gap: 4px;
+}
+
+/* Celular: o dia numa linha, "abre às / fecha às" embaixo. Tela larga: tudo numa linha. */
+.day {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  grid-template-areas:
+    'name name name'
+    'from as to';
+  align-items: center;
+  gap: 4px 8px;
+  padding-bottom: 8px;
+}
+
+.day__name {
+  grid-area: name;
+  min-width: 0;
+}
+
+.day input[name^='from'] {
+  grid-area: from;
+}
+
+.day input[name^='to'] {
+  grid-area: to;
+}
+
+.day > span {
+  grid-area: as;
+}
+
+@media (min-width: 520px) {
+  .day {
+    grid-template-columns: 9rem auto auto auto;
+    grid-template-areas: 'name from as to';
+    justify-content: start;
+    padding-bottom: 0;
+  }
+}
+
+.day input[type='time'] {
+  width: 100%;
+  min-width: 7rem;
+  min-height: 40px;
+  padding: 6px 8px;
+  border: 1px solid var(--linha);
+  border-radius: 6px;
+  background: #fff;
+  font: inherit;
+  font-size: 1rem;
+}
+
+.day input[type='time']:disabled {
+  opacity: 0.45;
+}
+
+.day .field__error {
+  grid-column: 1 / -1;
+}
+
+.store-form {
+  margin-top: 20px;
+  max-width: 520px;
+}
+
+.store-form .btn {
+  justify-self: start;
+}
