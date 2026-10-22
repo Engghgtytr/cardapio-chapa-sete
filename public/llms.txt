@@ -1,0 +1,16 @@
+# Chapa Sete Smash Burger
+
+> Cardápio digital de uma hamburgueria FICTÍCIA, feito como projeto de portfólio da Penchel.Dev. Nenhum pedido é entregue: o endereço, os preços e a loja não existem. Fotos e vídeos foram gerados com IA.
+
+## Páginas
+
+- `/#/`: página da loja (vídeo da chapa, como o smash é feito, cartazes dos pratos, endereço e horário).
+- `/#/cardapio`: cardápio por categoria (burgers, acompanhamentos, bebidas, sobremesas). A pessoa monta a sacola e o pedido vira uma mensagem de WhatsApp.
+- `/#/privacidade`: que dados o site usa e o que não guarda.
+- `/#/admin`: painel do dono (preço, foto, esgotado, horário). Sem banco configurado, funciona como demonstração no navegador de quem visita.
+
+## Como funciona
+
+- Site estático (Vite + JavaScript, sem framework). Dados no Supabase (PostgreSQL com RLS) quando configurado.
+- O pedido não é salvo no site: nome, endereço e itens vão direto na mensagem do WhatsApp.
+- Preços em reais (R$), guardados em centavos.

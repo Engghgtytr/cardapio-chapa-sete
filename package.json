@@ -1,0 +1,26 @@
+{
+  "name": "cardapio-chapa-sete",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Cardápio digital da Chapa Sete Smash Burger (loja fictícia), projeto da Penchel.Dev",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "imagens": "node scripts/otimizar-imagens.mjs",
+    "videos": "node scripts/otimizar-videos.mjs",
+    "seed": "node scripts/gerar-seed.mjs"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.2.17",
+    "ffmpeg-static": "^5.2.0",
+    "sharp": "^0.34.4",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.5"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.4"
+  }
+}
