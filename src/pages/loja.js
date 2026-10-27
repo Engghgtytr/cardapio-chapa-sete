@@ -87,7 +87,7 @@ export function renderLoja(app) {
     </main>
 
     <footer class="footer">
-      <p>Projeto de portfólio da <strong>Penchel.Dev</strong>. A Chapa Sete é uma loja fictícia e as fotos e vídeos foram gerados com IA.</p>
+      <p>Projeto de portfólio da <strong>Penchel.Dev</strong>. A Chapa Sete é uma loja fictícia e as fotos e vídeos são ilustrativos.</p>
       <p class="footer__links"><a href="#/privacidade">Privacidade</a> <a href="#/admin">Painel da loja</a></p>
     </footer>
   </div>`;
