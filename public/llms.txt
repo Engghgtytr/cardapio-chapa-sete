@@ -1,6 +1,6 @@
 # Chapa Sete Smash Burger
 
-> Cardápio digital de uma hamburgueria FICTÍCIA, feito como projeto de portfólio da Penchel.Dev. Nenhum pedido é entregue: o endereço, os preços e a loja não existem. Fotos e vídeos foram gerados com IA.
+> Cardápio digital de uma hamburgueria FICTÍCIA, feito como projeto de portfólio da Penchel.Dev. Nenhum pedido é entregue: o endereço, os preços e a loja não existem. Fotos e vídeos são ilustrativos.
 
 ## Páginas
 

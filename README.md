@@ -2,7 +2,7 @@
 
 Cardápio digital para uma hamburgueria **fictícia**, feito como projeto de portfólio da Penchel.Dev. A pessoa vê o cardápio no celular, monta a sacola e o pedido vira uma mensagem pronta no WhatsApp. O dono muda preço, foto, horário e o que esgotou por um painel, sem mexer em código.
 
-> A loja, o endereço e os preços não existem. Fotos e vídeos foram gerados com IA.
+> A loja, o endereço e os preços não existem. Fotos e vídeos são ilustrativos.
 
 ## O que tem
 
