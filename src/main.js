@@ -8,6 +8,10 @@ import { renderLoja } from './pages/loja.js';
 import { renderCardapio } from './pages/cardapio.js';
 import { renderAdmin } from './pages/admin.js';
 import { renderPrivacidade } from './pages/privacidade.js';
+import { renderPedido } from './pages/pedido.js';
+import { renderCozinha } from './pages/cozinha.js';
+import { renderMesas } from './pages/mesas.js';
+import './styles/pedidos.css';
 
 const app = document.getElementById('app');
 const description = document.querySelector('meta[name="description"]');
@@ -27,6 +31,9 @@ const routes = {
     description: 'Que dados o site da Chapa Sete usa: o pedido não é guardado, não há cookies de rastreamento.',
     render: renderPrivacidade,
   },
+  '/pedido': { title: 'Seu pedido · Chapa Sete', render: renderPedido },
+  '/cozinha': { title: 'Cozinha · Chapa Sete', render: renderCozinha },
+  '/admin/mesas': { title: 'Pedidos e QR das mesas · Painel · Chapa Sete', render: renderMesas },
   '/admin': { title: 'Painel · Chapa Sete', render: (el) => renderAdmin(el, 'pratos') },
   '/admin/loja': { title: 'Dados da loja · Painel · Chapa Sete', render: (el) => renderAdmin(el, 'loja') },
 };
@@ -35,13 +42,14 @@ const routes = {
 let cleanup = null;
 
 function router() {
-  const path = location.hash.slice(1) || '/';
+  // "#/cardapio?mesa=7" → rota "/cardapio" + parâmetros (mesa = 7).
+  const [path, query = ''] = (location.hash.slice(1) || '/').split('?');
   const route = routes[path] ?? routes['/'];
   cleanup?.();
   document.title = route.title;
   description.content = route.description ?? HOME_DESCRIPTION;
   window.scrollTo(0, 0);
-  cleanup = route.render(app) ?? null;
+  cleanup = route.render(app, new URLSearchParams(query)) ?? null;
 }
 
 window.addEventListener('hashchange', router);

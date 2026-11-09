@@ -9,6 +9,10 @@ Cardápio digital para uma hamburgueria **fictícia**, feito como projeto de por
 - **Página da loja:** vídeo da chapa no topo, uma seção que trava na tela mostrando como o smash é feito (com vídeos curtos), cartazes dos pratos, endereço e horário.
 - **Cardápio** (`#/cardapio`): abas por categoria, sacola com quantidade e observação, entrega ou retirada, troco, e a mensagem do pedido para o WhatsApp.
 - **Painel do dono** (`#/admin`): liga e desliga "Tem hoje" (esgotado), edita preço, nome, descrição e foto, cria pratos e ajusta WhatsApp, taxa de entrega, endereço e horários.
+- **Pedido pelo site / QR da mesa** (`#/cardapio?mesa=5`): com "Pedidos pelo site" ligado no painel, a sacola manda o pedido direto para a cozinha. Na mesa não pede pagamento (paga no caixa); retirada e entrega continuam com endereço e pagamento.
+- **Acompanhar pedido** (`#/pedido?id=…`): número do pedido e status (Recebido → Preparando → Pronto) atualizando sozinho.
+- **Tela da cozinha** (`#/cozinha`): pedidos chegando em tempo real, apito, tempo de espera e um toque para avançar o status. Só para admin.
+- **Pedidos e QR** (`#/admin/mesas`): liga/desliga os pedidos pelo site e imprime um QR code por mesa.
 - **Privacidade** (`#/privacidade`): o pedido não é guardado pelo site e não há rastreamento.
 
 ## Tecnologia
@@ -35,6 +39,7 @@ Sem o arquivo `.env`, o site funciona no **modo demonstração**: usa os dados d
    - `001_cardapio.sql`: tabelas, validações e regras de acesso (RLS);
    - `002_storage.sql`: bucket `menu-images` para as fotos;
    - `003_seed.sql`: dados iniciais. Rode só na primeira vez, porque ele volta os preços aos valores de exemplo.
+   - `004_pedidos.sql`: pedidos pelo site (preço calculado no banco, cozinha em tempo real, pedidos apagados após 90 dias).
 3. Em **Authentication → Sign In / Providers**, desligue **Allow new users to sign up**. Ninguém se cadastra pelo site.
 4. Em **Authentication → Users → Add user**, crie a conta do dono (e-mail e senha forte).
 5. No SQL Editor, dê o acesso de admin a essa conta:

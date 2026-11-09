@@ -11,8 +11,12 @@ export function renderPrivacidade(app) {
       <p class="doc__lead">A Chapa Sete é uma loja fictícia, criada como projeto de portfólio. Mesmo assim, o site foi feito para guardar o mínimo possível sobre quem visita.</p>
 
       <h2>O seu pedido</h2>
-      <p>Nome, endereço, forma de pagamento e observações que você digita na sacola <strong>não são enviados para este site nem guardados por ele</strong>. Eles viram uma mensagem que só sai do seu aparelho se você tocar em enviar no WhatsApp. A partir daí, valem as regras do WhatsApp e da loja que recebe a mensagem.</p>
+      <p>Quando a sacola envia pelo WhatsApp, nome, endereço, forma de pagamento e observações que você digita <strong>não são enviados para este site nem guardados por ele</strong>. Eles viram uma mensagem que só sai do seu aparelho se você tocar em enviar no WhatsApp. A partir daí, valem as regras do WhatsApp e da loja que recebe a mensagem.</p>
       <p>Enquanto a página está aberta, o que você digitou fica na memória do navegador, para não se perder se você fechar a sacola. Ao fechar a aba, isso some.</p>
+
+      <h2>Pedido pelo site (direto para a cozinha)</h2>
+      <p>Quando a loja usa o pedido pelo site (por exemplo, pelo QR code da mesa), o pedido <strong>é guardado</strong> para a cozinha preparar: seu nome, a mesa ou o endereço de entrega, a forma de pagamento, os itens e as observações. Só a equipe da loja vê esses dados. Você acompanha o seu pedido por um link que só você tem, e ele não mostra seu nome nem seu endereço.</p>
+      <p>Os pedidos são apagados automaticamente depois de 90 dias. Para pedir que um pedido seu seja apagado antes, fale com a loja.</p>
 
       <h2>Cookies e rastreamento</h2>
       <p>O site não usa cookies de propaganda nem ferramentas de rastreamento (como Google Analytics ou Meta Pixel). Por isso não há aviso de cookies.</p>
@@ -23,7 +27,7 @@ export function renderPrivacidade(app) {
       <h2>Serviços usados</h2>
       <ul class="doc__list">
         <li><strong>Vercel</strong>: hospeda o site.</li>
-        <li><strong>Supabase</strong>: quando a loja usa banco de dados, guarda o cardápio, os preços e as fotos dos pratos.</li>
+        <li><strong>Supabase</strong>: quando a loja usa banco de dados, guarda o cardápio, os preços, as fotos dos pratos e os pedidos feitos pelo site.</li>
       </ul>
       <p>Esses serviços recebem dados técnicos de qualquer acesso a um site, como o endereço IP, para entregar as páginas.</p>
 

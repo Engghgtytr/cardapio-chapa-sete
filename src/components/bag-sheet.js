@@ -1,5 +1,7 @@
-import { NOTE_MAX, cartLines, onCartChange, setNote, setQty } from '../services/cart.js';
-import { LIMITS, PAYMENTS, buildOrderMessage, orderTotals, validateOrder, whatsappUrl } from '../utils/order.js';
+import { NOTE_MAX, cartLines, clearCart, onCartChange, setNote, setQty } from '../services/cart.js';
+import { placeOrder } from '../services/orders.js';
+import { supabase } from '../services/supabase.js';
+import { LIMITS, PAYMENTS, buildOrderMessage, clean, orderTotals, parseMoney, validateOrder, whatsappUrl } from '../utils/order.js';
 import { esc } from '../utils/dom.js';
 import { formatCents } from '../utils/money.js';
 import { openStatus } from '../utils/hours.js';
@@ -32,7 +34,15 @@ const lineHTML = ({ item, qty, note, subtotalCents }) => `
 const radio = (name, value, label, checked) => `
   <label class="choice"><input type="radio" name="${name}" value="${value}" ${checked ? 'checked' : ''} /><span>${label}</span></label>`;
 
-export function createBagSheet(store, items) {
+// Pedido pelo site ligado? Na demonstração vem ligado, a não ser que o painel desligue.
+export const onlineOrders = (store) => (supabase ? Boolean(store.online_orders) : store.online_orders !== false);
+
+// table = número da mesa vindo do QR code (#/cardapio?mesa=7). Só vale com pedido pelo site.
+export function createBagSheet(store, items, { table = null } = {}) {
+  const online = onlineOrders(store);
+  const atTable = online && Boolean(table);
+  if (atTable) form.mode = 'mesa';
+  else if (form.mode === 'mesa') form.mode = 'retirada';
   const dialog = document.createElement('dialog');
   dialog.className = 'sheet';
   dialog.setAttribute('aria-labelledby', 'bag-title');
@@ -53,7 +63,8 @@ export function createBagSheet(store, items) {
             <input id="f-name" name="name" autocomplete="name" maxlength="${LIMITS.name}" value="${esc(form.name)}" />
             <p class="field__error" id="e-name"></p>
           </div>
-          <fieldset class="field">
+          ${atTable ? `<p class="table-chip">Pedido da <strong>mesa ${esc(table)}</strong>. Você paga no fim, no caixa.</p>` : ''}
+          <fieldset class="field" ${atTable ? 'hidden' : ''}>
             <legend>Como você quer receber?</legend>
             <div class="choices">
               ${radio('mode', 'retirada', 'Retirar no balcão', form.mode === 'retirada')}
@@ -66,7 +77,7 @@ export function createBagSheet(store, items) {
                       placeholder="Rua, número, bairro e complemento">${esc(form.address)}</textarea>
             <p class="field__error" id="e-address"></p>
           </div>
-          <fieldset class="field">
+          <fieldset class="field" ${atTable ? 'hidden' : ''}>
             <legend>Pagamento</legend>
             <div class="choices">
               ${Object.entries(PAYMENTS).map(([v, l]) => radio('payment', v, l.replace(/ \(.*\)/, ''), form.payment === v)).join('')}
@@ -92,7 +103,8 @@ export function createBagSheet(store, items) {
     <footer class="sheet__foot">
       <dl class="totals"></dl>
       <p class="closed-note" hidden></p>
-      <button class="btn btn--whats" type="button" data-send>Enviar pedido pelo WhatsApp</button>
+      <p class="send-error" role="alert" hidden></p>
+      <button class="btn ${online ? 'btn--kitchen' : 'btn--whats'}" type="button" data-send>${online ? 'Enviar pedido para a cozinha' : 'Enviar pedido pelo WhatsApp'}</button>
       <button class="btn btn--ghost-dark" type="button" data-back hidden>Voltar ao pedido</button>
     </footer>`;
 
@@ -122,7 +134,7 @@ export function createBagSheet(store, items) {
       ${form.mode === 'entrega' ? `<dt>Entrega</dt><dd>${formatCents(feeCents)}</dd>` : ''}
       <dt class="totals__total">Total</dt><dd class="totals__total">${formatCents(totalCents)}</dd>`;
     formEl.querySelectorAll('[data-when]').forEach((el) => {
-      el.hidden = el.dataset.when !== form.mode && el.dataset.when !== form.payment;
+      el.hidden = (el.dataset.when !== form.mode && el.dataset.when !== form.payment) || form.mode === 'mesa';
     });
     if (lines.length === 0) show('empty');
     else if (!views.preview.hidden) show('preview');
@@ -179,6 +191,10 @@ export function createBagSheet(store, items) {
       return;
     }
 
+    if (online) {
+      sendOnline(lines);
+      return;
+    }
     const message = buildOrderMessage({ storeName: store.name, lines, form, deliveryFeeCents: store.delivery_fee_cents });
     const url = whatsappUrl(store.whatsapp, message);
     if (url) {
@@ -197,6 +213,46 @@ export function createBagSheet(store, items) {
     show('preview');
     $('[data-back]').focus();
   });
+
+  // Envia para a cozinha. Trava o botão para um toque duplo não criar dois pedidos.
+  let sending = false;
+  async function sendOnline(lines) {
+    if (sending) return;
+    sending = true;
+    const button = $('[data-send]');
+    const errorBox = $('.send-error');
+    errorBox.hidden = true;
+    button.disabled = true;
+    button.setAttribute('aria-busy', 'true');
+    button.textContent = 'Enviando…';
+    try {
+      const { id } = await placeOrder({
+        mode: form.mode,
+        table: atTable ? String(table) : null,
+        name: clean(form.name, LIMITS.name),
+        address: form.mode === 'entrega' ? clean(form.address, LIMITS.address) : null,
+        payment: form.mode === 'mesa' ? null : form.payment,
+        change_cents: form.mode !== 'mesa' && form.payment === 'dinheiro' ? parseMoney(form.change) : null,
+        items: lines.map((l) => ({ id: l.item.id, qty: l.qty, note: clean(l.note, NOTE_MAX) })),
+      });
+      clearCart();
+      try {
+        sessionStorage.setItem('chapa7:ultimo-pedido', id);
+      } catch {
+        // sem sessionStorage: o link de acompanhar só aparece agora
+      }
+      dialog.close();
+      location.hash = `#/pedido?id=${encodeURIComponent(id)}`;
+    } catch (err) {
+      errorBox.textContent = err.message;
+      errorBox.hidden = false;
+    } finally {
+      sending = false;
+      button.disabled = false;
+      button.removeAttribute('aria-busy');
+      button.textContent = 'Enviar pedido para a cozinha';
+    }
+  }
 
   $('[data-back]').addEventListener('click', () => {
     show('order');

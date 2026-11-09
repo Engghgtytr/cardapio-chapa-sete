@@ -34,8 +34,9 @@ export function validateOrder(form, lines, totalCents) {
   if (lines.length === 0) errors.cart = 'Adicione pelo menos um item.';
   if (!clean(form.name)) errors.name = 'Informe seu nome.';
   if (form.mode === 'entrega' && !clean(form.address)) errors.address = 'Informe o endereço de entrega.';
-  if (!PAYMENTS[form.payment]) errors.payment = 'Escolha a forma de pagamento.';
-  if (form.payment === 'dinheiro' && String(form.change ?? '').trim()) {
+  // Na mesa, a conta é paga no fim, no caixa.
+  if (form.mode !== 'mesa' && !PAYMENTS[form.payment]) errors.payment = 'Escolha a forma de pagamento.';
+  if (form.mode !== 'mesa' && form.payment === 'dinheiro' && String(form.change ?? '').trim()) {
     const change = parseMoney(form.change);
     if (change === null) errors.change = 'Use um valor como 100 ou 100,00.';
     else if (change < totalCents) errors.change = `O troco precisa ser para ${formatCents(totalCents)} ou mais.`;

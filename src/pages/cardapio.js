@@ -1,5 +1,5 @@
 import { logo, statusPill } from '../components/brand.js';
-import { createBagSheet } from '../components/bag-sheet.js';
+import { createBagSheet, onlineOrders } from '../components/bag-sheet.js';
 import { getMenu, menuImage } from '../services/menu.js';
 import { addItem, cartSummary, onCartChange } from '../services/cart.js';
 import { esc } from '../utils/dom.js';
@@ -34,7 +34,31 @@ function dish(item) {
     </li>`;
 }
 
-export function renderCardapio(app) {
+// Mesa do QR code (#/cardapio?mesa=7). Fica guardada na aba: se a pessoa for à página
+// da loja e voltar, continua sendo pedido da mesma mesa.
+const TABLE_KEY = 'chapa7:mesa';
+const LAST_ORDER_KEY = 'chapa7:ultimo-pedido';
+
+function readTable(params) {
+  const fromQr = params?.get('mesa');
+  try {
+    if (fromQr && /^[A-Za-z0-9-]{1,10}$/.test(fromQr)) sessionStorage.setItem(TABLE_KEY, fromQr);
+    return sessionStorage.getItem(TABLE_KEY);
+  } catch {
+    return fromQr && /^[A-Za-z0-9-]{1,10}$/.test(fromQr) ? fromQr : null;
+  }
+}
+
+function lastOrder() {
+  try {
+    return sessionStorage.getItem(LAST_ORDER_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function renderCardapio(app, params) {
+  const table = readTable(params);
   app.innerHTML = `
   <div class="cardapio">
     <header class="menu-header">
@@ -44,6 +68,7 @@ export function renderCardapio(app) {
       ${logo('#/')}
       <span data-status></span>
     </header>
+    <div class="order-banner" hidden></div>
     <nav class="tabs" aria-label="Categorias"><div class="tabs__list"></div></nav>
     <main class="menu" id="menu">${skeleton()}</main>
     <div class="cart-bar" hidden>
@@ -68,7 +93,7 @@ export function renderCardapio(app) {
         // A pessoa pode ter saído da página antes de os dados chegarem.
         if (!page.isConnected) return;
         main.removeAttribute('aria-busy');
-        fillMenu(app, menu, offs);
+        fillMenu(app, menu, offs, table);
       })
       .catch((err) => {
         if (!page.isConnected) return;
@@ -85,9 +110,17 @@ export function renderCardapio(app) {
   return () => offs.forEach((off) => off());
 }
 
-function fillMenu(app, menu, offs) {
+function fillMenu(app, menu, offs, table) {
   const main = app.querySelector('#menu');
   app.querySelector('[data-status]').outerHTML = statusPill(menu.store.hours);
+  const online = onlineOrders(menu.store);
+  const banner = app.querySelector('.order-banner');
+  const last = online && lastOrder();
+  const parts = [];
+  if (online && table) parts.push(`<span>Mesa <strong>${esc(table)}</strong> · seu pedido vai direto para a cozinha</span>`);
+  if (last) parts.push(`<a href="#/pedido?id=${encodeURIComponent(last)}">Acompanhar meu pedido</a>`);
+  banner.innerHTML = parts.join('');
+  banner.hidden = parts.length === 0;
   if (menu.categories.length === 0) {
     main.innerHTML = '<p class="load-error">O cardápio está vazio no momento. Volte mais tarde.</p>';
     return;
@@ -107,7 +140,7 @@ function fillMenu(app, menu, offs) {
   });
 
   offs.push(initTabs(app, menu.categories));
-  offs.push(initCart(app, menu.store, menu.items));
+  offs.push(initCart(app, menu.store, menu.items, table));
 }
 
 // Abas de categoria: acompanham a rolagem e o indicador desliza até a aba atual.
@@ -168,7 +201,7 @@ function initTabs(app, categories) {
   };
 }
 
-function initCart(app, store, items) {
+function initCart(app, store, items, table) {
   const bar = app.querySelector('.cart-bar');
   const count = bar.querySelector('.cart-bar__count');
   const total = bar.querySelector('.cart-bar__total');
@@ -193,7 +226,7 @@ function initCart(app, store, items) {
     count.classList.add('is-bumping');
   });
 
-  const sheet = createBagSheet(store, items);
+  const sheet = createBagSheet(store, items, { table });
   bar.querySelector('button').addEventListener('click', () => sheet.open());
 
   paint();

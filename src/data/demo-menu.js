@@ -9,6 +9,8 @@ export const DEMO_STORE = {
   // WhatsApp, porque um número inventado pode pertencer a uma pessoa real.
   whatsapp: null,
   delivery_fee_cents: 600,
+  // Pedidos pelo site ligados na demonstração: a sacola manda para a tela da cozinha (#/cozinha).
+  online_orders: true,
   // Dia da semana: 0 = domingo … 6 = sábado. Horários no formato "HH:MM".
   // Fechado na segunda; aberto de terça a domingo, das 18h às 23h30.
   hours: {

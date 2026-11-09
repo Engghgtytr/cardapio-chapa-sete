@@ -160,6 +160,8 @@ async function showPanel(ctx, admin) {
         <nav class="admin-nav" aria-label="Painel">
           <a href="#/admin" ${ctx.view === 'pratos' ? 'aria-current="page"' : ''}>Pratos</a>
           <a href="#/admin/loja" ${ctx.view === 'loja' ? 'aria-current="page"' : ''}>Loja</a>
+          <a href="#/admin/mesas">Pedidos e QR</a>
+          <a href="#/cozinha">Cozinha</a>
         </nav>
         <button class="admin-out" type="button" data-out>Sair</button>
       </header>
