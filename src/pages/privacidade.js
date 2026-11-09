@@ -15,7 +15,7 @@ export function renderPrivacidade(app) {
       <p>Enquanto a página está aberta, o que você digitou fica na memória do navegador, para não se perder se você fechar a sacola. Ao fechar a aba, isso some.</p>
 
       <h2>Pedido pelo site (direto para a cozinha)</h2>
-      <p>Quando a loja usa o pedido pelo site (por exemplo, pelo QR code da mesa), o pedido <strong>é guardado</strong> para a cozinha preparar: seu nome, a mesa ou o endereço de entrega, a forma de pagamento, os itens e as observações. Para evitar pedidos falsos, também guardamos um código embaralhado (hash) gerado a partir do endereço de internet do aparelho, que não permite descobrir o endereço. Só a equipe da loja vê esses dados. Você acompanha o seu pedido por um link que só você tem, e ele não mostra seu nome nem seu endereço.</p>
+      <p>Quando a loja usa o pedido pelo site (por exemplo, pelo QR code da mesa), o pedido <strong>é guardado</strong> para a cozinha preparar: seu nome, a mesa ou o endereço de entrega, a forma de pagamento, os itens e as observações. Só a equipe da loja vê esses dados. Para frear pedidos falsos, o site guarda por 10 minutos um código embaralhado do endereço de internet do aparelho, que nem a loja consegue ler, e depois o apaga. Você acompanha o seu pedido por um link que só você tem, e ele não mostra seu nome nem seu endereço.</p>
       <p>Os pedidos são apagados automaticamente depois de 90 dias. Para pedir que um pedido seu seja apagado antes, fale com a loja.</p>
 
       <h2>Cookies e rastreamento</h2>

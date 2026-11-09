@@ -26,8 +26,13 @@ const asOwner = async (query, params = []) => {
 };
 
 const FAZER = 'select * from public.fazer_pedido($1, $2, $3, $4, $5, $6, $7::jsonb)';
-const pedido = (who, { mode = 'retirada', table = null, name = 'Ana', address = null, payment = 'pix', change = null, items }) =>
-  as(who, FAZER, [mode, table, name, address, payment, change, JSON.stringify(items)]);
+// Cada pedido vem de um "aparelho" diferente, a não ser no teste do freio contra spam.
+let n = 0;
+let fixo = false;
+const pedido = async (who, { mode = 'retirada', table = null, name = 'Ana', address = null, payment = 'pix', change = null, items }) => {
+  if (!fixo) await asOwner(`select set_config('request.headers', $1, false)`, [JSON.stringify({ 'cf-connecting-ip': `10.0.0.${++n}` })]);
+  return as(who, FAZER, [mode, table, name, address, payment, change, JSON.stringify(items)]);
+};
 
 beforeAll(async () => {
   db = new PGlite();
@@ -96,7 +101,8 @@ describe('fazer pedido (visitante)', () => {
 
 describe('freio contra spam', () => {
   it('o mesmo aparelho só faz 5 pedidos em 10 minutos; outro aparelho continua pedindo', async () => {
-    const ip = (addr) => asOwner(`select set_config('request.headers', $1, false)`, [JSON.stringify({ 'x-forwarded-for': addr })]);
+    const ip = (addr) => asOwner(`select set_config('request.headers', $1, false)`, [JSON.stringify({ 'cf-connecting-ip': addr, 'x-forwarded-for': '1.1.1.1' })]);
+    fixo = true;
     await ip('203.0.113.9');
     for (let i = 0; i < 5; i++) await pedido(null, { items: [{ id: 'burger-classico', qty: 1 }] });
     await expect(pedido(null, { items: [{ id: 'burger-classico', qty: 1 }] })).rejects.toThrow(/muitos_pedidos/);
@@ -104,6 +110,14 @@ describe('freio contra spam', () => {
     const [ok] = await pedido(null, { items: [{ id: 'burger-classico', qty: 1 }] });
     expect(ok.code).toBeGreaterThan(0);
     await asOwner(`select set_config('request.headers', '', false)`);
+    fixo = false;
+  });
+
+  it('ninguém lê o sal nem a contagem por aparelho, nem o admin', async () => {
+    await expect(as(null, 'select * from public.order_rate')).rejects.toThrow(/permission denied/);
+    await expect(as(DONO, 'select * from public.app_secret')).rejects.toThrow(/permission denied/);
+    const [col] = await asOwner(`select count(*)::int n from information_schema.columns where table_name = 'orders' and column_name = 'client_key'`);
+    expect(col.n).toBe(0);
   });
 });
 

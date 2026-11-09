@@ -24,7 +24,6 @@ create table public.orders (
   subtotal_cents integer not null check (subtotal_cents > 0),
   fee_cents      integer not null default 0 check (fee_cents >= 0),
   total_cents    integer not null check (total_cents > 0),
-  client_key     text,                                   -- hash do IP de quem pediu (só para frear spam; some com o pedido)
   status         text not null default 'novo' check (status in ('novo', 'preparando', 'pronto', 'entregue', 'cancelado')),
   created_at     timestamptz not null default now(),
   updated_at     timestamptz not null default now(),
@@ -34,7 +33,6 @@ create table public.orders (
 );
 
 create index orders_created_idx on public.orders (created_at desc);
-create index orders_client_idx on public.orders (client_key, created_at desc);
 create index orders_open_idx on public.orders (status) where status in ('novo', 'preparando', 'pronto');
 
 create trigger orders_touch before update on public.orders
@@ -47,10 +45,10 @@ language plpgsql
 set search_path = ''
 as $$
 begin
-  if (new.id, new.client_key, new.code, new.mode, new.table_label, new.customer_name, new.address, new.payment, new.change_cents,
+  if (new.id, new.code, new.mode, new.table_label, new.customer_name, new.address, new.payment, new.change_cents,
       new.items, new.subtotal_cents, new.fee_cents, new.total_cents, new.created_at)
      is distinct from
-     (old.id, old.client_key, old.code, old.mode, old.table_label, old.customer_name, old.address, old.payment, old.change_cents,
+     (old.id, old.code, old.mode, old.table_label, old.customer_name, old.address, old.payment, old.change_cents,
       old.items, old.subtotal_cents, old.fee_cents, old.total_cents, old.created_at) then
     raise exception 'Só o status do pedido pode mudar' using errcode = '42501';
   end if;
@@ -68,6 +66,28 @@ $$;
 
 create trigger orders_status_rules before update on public.orders
   for each row execute function public.orders_status_rules();
+
+-- ---------- Freio contra spam (tabelas privadas) ----------
+
+-- Um "sal" secreto, criado aqui e que ninguém lê (só a função fazer_pedido): sem ele,
+-- o código guardado não dá para ser revertido no IP.
+create table public.app_secret (
+  id   smallint primary key default 1 check (id = 1),
+  salt text not null default (gen_random_uuid()::text || gen_random_uuid()::text)
+);
+insert into public.app_secret default values;
+
+-- Pedidos recentes por aparelho. Só existe para contar os últimos 10 minutos; o mais velho é apagado.
+create table public.order_rate (
+  client_key text not null,
+  created_at timestamptz not null default now()
+);
+create index order_rate_idx on public.order_rate (client_key, created_at);
+
+revoke all on public.app_secret, public.order_rate from anon, authenticated;
+alter table public.app_secret enable row level security;
+alter table public.order_rate enable row level security;
+-- Sem políticas: nem visitante nem admin leem essas tabelas pelo site.
 
 -- ---------- Fazer pedido (visitante) ----------
 
@@ -99,6 +119,7 @@ declare
   v_note text;
   v_id uuid;
   v_client text;
+  v_ip text;
 begin
   select * into v_store from public.store_settings where store_settings.id = 1;
   if not coalesce(v_store.online_orders, false) then
@@ -109,16 +130,22 @@ begin
     raise exception 'itens_invalidos' using errcode = 'P0001';
   end if;
 
-  -- Freio contra spam: até 5 pedidos a cada 10 minutos por aparelho (IP), para um engraçadinho
-  -- não lotar a cozinha nem travar os pedidos dos outros. O teto geral alto é só último recurso.
-  -- shortcut: IP pode ser compartilhado (Wi-Fi da loja) ou trocado; se virar problema, pôr captcha (Turnstile).
-  v_client := encode(sha256(convert_to(coalesce(
-    split_part(coalesce(current_setting('request.headers', true)::json->>'x-forwarded-for', ''), ',', 1), ''), 'UTF8')), 'hex');
-  if (select count(*) from public.orders o
-      where o.client_key = v_client and o.created_at > now() - interval '10 minutes') >= 5 then
+  -- Uma fila só: trava ANTES de contar, para dois pedidos ao mesmo tempo não furarem o limite
+  -- nem pegarem o mesmo número do dia. (Volume de restaurante: a fila é instantânea.)
+  perform pg_advisory_xact_lock(hashtext('orders_code'));
+
+  -- Freio contra spam: até 5 pedidos a cada 10 minutos por aparelho. O IP vem do cabeçalho que a
+  -- Cloudflare/Supabase grava e sobrescreve (cf-connecting-ip); o x-forwarded-for do cliente não é
+  -- usado, porque dá para falsificar. Sem IP, cai no balde 'sem-ip' (e no teto geral).
+  -- shortcut: IP pode ser compartilhado (Wi-Fi da loja) ou trocado (4G); se virar problema, pôr captcha (Turnstile).
+  v_ip := coalesce(nullif(current_setting('request.headers', true), '')::json->>'cf-connecting-ip',
+                   nullif(current_setting('request.headers', true), '')::json->>'x-real-ip', 'sem-ip');
+  select encode(sha256(convert_to(a.salt || v_ip, 'UTF8')), 'hex') into v_client from public.app_secret a;
+  delete from public.order_rate r where r.created_at < now() - interval '10 minutes';
+  if (select count(*) from public.order_rate r where r.client_key = v_client) >= 5 then
     raise exception 'muitos_pedidos' using errcode = 'P0001';
   end if;
-  if (select count(*) from public.orders o where o.created_at > now() - interval '10 minutes') >= 500 then
+  if (select count(*) from public.order_rate) >= 300 then
     raise exception 'muitos_pedidos' using errcode = 'P0001';
   end if;
 
@@ -148,21 +175,21 @@ begin
     v_fee := v_store.delivery_fee_cents;
   end if;
 
-  -- Número do dia: trava curta para dois pedidos ao mesmo tempo não pegarem o mesmo número.
-  perform pg_advisory_xact_lock(hashtext('orders_code'));
+  -- Número do dia (a trava lá de cima garante que não repete).
   select coalesce(max(o.code), 0) + 1 into v_code from public.orders o
     where o.created_at >= date_trunc('day', now() at time zone 'America/Sao_Paulo') at time zone 'America/Sao_Paulo';
 
   insert into public.orders (code, mode, table_label, customer_name, address, payment, change_cents,
-                             items, subtotal_cents, fee_cents, total_cents, client_key)
+                             items, subtotal_cents, fee_cents, total_cents)
   values (v_code, p_mode,
           case when p_mode = 'mesa' then p_table end,
           btrim(p_name),
           case when p_mode = 'entrega' then nullif(btrim(p_address), '') end,
           case when p_mode <> 'mesa' then p_payment end,
           case when p_mode <> 'mesa' and p_payment = 'dinheiro' then p_change_cents end,
-          v_items, v_subtotal, v_fee, v_subtotal + v_fee, v_client)
+          v_items, v_subtotal, v_fee, v_subtotal + v_fee)
   returning orders.id into v_id;
+  insert into public.order_rate (client_key) values (v_client);
 
   -- Guardar só o necessário (LGPD): pedidos com nome e endereço somem depois de 90 dias.
   delete from public.orders o where o.created_at < now() - interval '90 days';
