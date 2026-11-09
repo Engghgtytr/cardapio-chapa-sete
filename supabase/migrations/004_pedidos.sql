@@ -24,6 +24,7 @@ create table public.orders (
   subtotal_cents integer not null check (subtotal_cents > 0),
   fee_cents      integer not null default 0 check (fee_cents >= 0),
   total_cents    integer not null check (total_cents > 0),
+  client_key     text,                                   -- hash do IP de quem pediu (só para frear spam; some com o pedido)
   status         text not null default 'novo' check (status in ('novo', 'preparando', 'pronto', 'entregue', 'cancelado')),
   created_at     timestamptz not null default now(),
   updated_at     timestamptz not null default now(),
@@ -33,6 +34,7 @@ create table public.orders (
 );
 
 create index orders_created_idx on public.orders (created_at desc);
+create index orders_client_idx on public.orders (client_key, created_at desc);
 create index orders_open_idx on public.orders (status) where status in ('novo', 'preparando', 'pronto');
 
 create trigger orders_touch before update on public.orders
@@ -45,10 +47,10 @@ language plpgsql
 set search_path = ''
 as $$
 begin
-  if (new.id, new.code, new.mode, new.table_label, new.customer_name, new.address, new.payment, new.change_cents,
+  if (new.id, new.client_key, new.code, new.mode, new.table_label, new.customer_name, new.address, new.payment, new.change_cents,
       new.items, new.subtotal_cents, new.fee_cents, new.total_cents, new.created_at)
      is distinct from
-     (old.id, old.code, old.mode, old.table_label, old.customer_name, old.address, old.payment, old.change_cents,
+     (old.id, old.client_key, old.code, old.mode, old.table_label, old.customer_name, old.address, old.payment, old.change_cents,
       old.items, old.subtotal_cents, old.fee_cents, old.total_cents, old.created_at) then
     raise exception 'Só o status do pedido pode mudar' using errcode = '42501';
   end if;
@@ -96,6 +98,7 @@ declare
   v_qty integer;
   v_note text;
   v_id uuid;
+  v_client text;
 begin
   select * into v_store from public.store_settings where store_settings.id = 1;
   if not coalesce(v_store.online_orders, false) then
@@ -106,9 +109,16 @@ begin
     raise exception 'itens_invalidos' using errcode = 'P0001';
   end if;
 
-  -- Freio contra robôs: no máximo 60 pedidos em 10 minutos para a loja toda.
-  -- shortcut: trava global, não por cliente; se uma loja grande passar disso, aumente o número.
-  if (select count(*) from public.orders o where o.created_at > now() - interval '10 minutes') >= 60 then
+  -- Freio contra spam: até 5 pedidos a cada 10 minutos por aparelho (IP), para um engraçadinho
+  -- não lotar a cozinha nem travar os pedidos dos outros. O teto geral alto é só último recurso.
+  -- shortcut: IP pode ser compartilhado (Wi-Fi da loja) ou trocado; se virar problema, pôr captcha (Turnstile).
+  v_client := encode(sha256(convert_to(coalesce(
+    split_part(coalesce(current_setting('request.headers', true)::json->>'x-forwarded-for', ''), ',', 1), ''), 'UTF8')), 'hex');
+  if (select count(*) from public.orders o
+      where o.client_key = v_client and o.created_at > now() - interval '10 minutes') >= 5 then
+    raise exception 'muitos_pedidos' using errcode = 'P0001';
+  end if;
+  if (select count(*) from public.orders o where o.created_at > now() - interval '10 minutes') >= 500 then
     raise exception 'muitos_pedidos' using errcode = 'P0001';
   end if;
 
@@ -144,14 +154,14 @@ begin
     where o.created_at >= date_trunc('day', now() at time zone 'America/Sao_Paulo') at time zone 'America/Sao_Paulo';
 
   insert into public.orders (code, mode, table_label, customer_name, address, payment, change_cents,
-                             items, subtotal_cents, fee_cents, total_cents)
+                             items, subtotal_cents, fee_cents, total_cents, client_key)
   values (v_code, p_mode,
           case when p_mode = 'mesa' then p_table end,
           btrim(p_name),
           case when p_mode = 'entrega' then nullif(btrim(p_address), '') end,
           case when p_mode <> 'mesa' then p_payment end,
           case when p_mode <> 'mesa' and p_payment = 'dinheiro' then p_change_cents end,
-          v_items, v_subtotal, v_fee, v_subtotal + v_fee)
+          v_items, v_subtotal, v_fee, v_subtotal + v_fee, v_client)
   returning orders.id into v_id;
 
   -- Guardar só o necessário (LGPD): pedidos com nome e endereço somem depois de 90 dias.

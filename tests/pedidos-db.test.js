@@ -94,6 +94,19 @@ describe('fazer pedido (visitante)', () => {
   });
 });
 
+describe('freio contra spam', () => {
+  it('o mesmo aparelho só faz 5 pedidos em 10 minutos; outro aparelho continua pedindo', async () => {
+    const ip = (addr) => asOwner(`select set_config('request.headers', $1, false)`, [JSON.stringify({ 'x-forwarded-for': addr })]);
+    await ip('203.0.113.9');
+    for (let i = 0; i < 5; i++) await pedido(null, { items: [{ id: 'burger-classico', qty: 1 }] });
+    await expect(pedido(null, { items: [{ id: 'burger-classico', qty: 1 }] })).rejects.toThrow(/muitos_pedidos/);
+    await ip('198.51.100.7');
+    const [ok] = await pedido(null, { items: [{ id: 'burger-classico', qty: 1 }] });
+    expect(ok.code).toBeGreaterThan(0);
+    await asOwner(`select set_config('request.headers', '', false)`);
+  });
+});
+
 describe('cozinha (admin) e outras contas', () => {
   it('conta logada sem admin não vê nem muda pedidos', async () => {
     expect(await as(CLIENTE, 'select id from public.orders')).toHaveLength(0);

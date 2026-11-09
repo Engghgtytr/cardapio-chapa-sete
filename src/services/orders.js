@@ -20,7 +20,7 @@ const ERRORS = {
   pedidos_desligados: 'Esta loja não está recebendo pedidos pelo site agora. Fale com o atendente.',
   item_indisponivel: 'Algum item acabou de esgotar. Confira a sacola e tente de novo.',
   itens_invalidos: 'Algo na sacola ficou inválido. Confira as quantidades e tente de novo.',
-  muitos_pedidos: 'Muitos pedidos ao mesmo tempo. Espere um minuto e tente de novo.',
+  muitos_pedidos: 'Você fez muitos pedidos em pouco tempo. Espere alguns minutos ou fale com o atendente.',
 };
 
 function toOrderError(error) {
