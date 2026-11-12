@@ -1,5 +1,6 @@
 import { logo, statusPill } from '../components/brand.js';
 import { createBagSheet, onlineOrders } from '../components/bag-sheet.js';
+import { createOptionsSheet } from '../components/options-sheet.js';
 import { getMenu, menuImage } from '../services/menu.js';
 import { addItem, cartSummary, onCartChange } from '../services/cart.js';
 import { esc } from '../utils/dom.js';
@@ -25,7 +26,7 @@ function dish(item) {
       <div class="dish__info">
         <h3>${esc(item.name)}</h3>
         <p>${esc(item.description)}</p>
-        <p class="dish__price">${item.available ? formatCents(item.price_cents) : '<span class="badge">Esgotado</span>'}</p>
+        <p class="dish__price">${item.available ? `${item.options?.some((g) => g.choices.some((c) => c.price_cents > 0)) ? 'a partir de ' : ''}${formatCents(item.price_cents)}` : '<span class="badge">Esgotado</span>'}</p>
       </div>
       <div class="dish__photo">
         ${photo}
@@ -218,8 +219,14 @@ function initCart(app, store, items, table) {
   app.querySelector('#menu').addEventListener('click', (e) => {
     const button = e.target.closest('[data-add]');
     if (!button) return;
-    addItem(button.dataset.add);
-    announce.textContent = `${byId.get(button.dataset.add).name} adicionado`;
+    const item = byId.get(button.dataset.add);
+    // Prato com opções (tamanho, ponto, adicionais): escolhe antes de ir para a sacola
+    if (item.options?.length) {
+      optionsSheet.open(item);
+      return;
+    }
+    addItem(item.id);
+    announce.textContent = `${item.name} adicionado`;
     // O contador dá um "pulinho" para mostrar onde o item foi parar.
     count.classList.remove('is-bumping');
     void count.offsetWidth;
@@ -227,6 +234,14 @@ function initCart(app, store, items, table) {
   });
 
   const sheet = createBagSheet(store, items, { table });
+  const optionsSheet = createOptionsSheet({
+    onAdded: (item) => {
+      announce.textContent = `${item.name} adicionado`;
+      count.classList.remove('is-bumping');
+      void count.offsetWidth;
+      count.classList.add('is-bumping');
+    },
+  });
   bar.querySelector('button').addEventListener('click', () => sheet.open());
 
   paint();
@@ -234,5 +249,6 @@ function initCart(app, store, items, table) {
   return () => {
     off();
     sheet.destroy();
+    optionsSheet.destroy();
   };
 }

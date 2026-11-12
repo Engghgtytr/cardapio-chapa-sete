@@ -12,10 +12,10 @@ describe('sacola com quantidade e observação', () => {
   beforeEach(() => clearCart());
 
   it('muda a quantidade e remove com zero', () => {
-    addItem('burger-bacon');
-    setQty('burger-bacon', 3);
-    expect(cartLines(DEMO_ITEMS)[0]).toMatchObject({ qty: 3, subtotalCents: 10470 });
-    setQty('burger-bacon', 0);
+    addItem('burger-frango');
+    setQty('burger-frango', 3);
+    expect(cartLines(DEMO_ITEMS)[0]).toMatchObject({ qty: 3, subtotalCents: 9870 });
+    setQty('burger-frango', 0);
     expect(cartLines(DEMO_ITEMS)).toEqual([]);
   });
 
@@ -101,11 +101,21 @@ describe('mensagem do WhatsApp', () => {
   });
 
   it('retirada não cobra taxa', () => {
-    addItem('burger-bacon');
+    addItem('burger-frango');
     const text = plain(buildOrderMessage({ storeName: 'X', lines: cartLines(DEMO_ITEMS), form: form(), deliveryFeeCents: 600 }));
     expect(text).toContain('Retirada no balcão');
     expect(text).not.toContain('Taxa de entrega');
-    expect(text).toContain('*Total: R$ 34,90*');
+    expect(text).toContain('*Total: R$ 32,90*');
+  });
+
+  it('prato com opções: preço com adicionais, linha separada por escolha e resumo na mensagem', () => {
+    addItem('burger-bacon', { ponto: ['bem-passado'], adicionais: ['bacon', 'ovo'] });
+    addItem('burger-bacon', { ponto: ['ao-ponto'] });
+    addItem('burger-bacon'); // sem o ponto (obrigatório): fica fora da sacola
+    const lines = cartLines(DEMO_ITEMS);
+    expect(lines.map((l) => l.subtotalCents)).toEqual([3490 + 400 + 300, 3490]);
+    const text = plain(buildOrderMessage({ storeName: 'X', lines, form: form(), deliveryFeeCents: 600 }));
+    expect(text).toContain('Ponto da carne: Bem passado · Adicionais: Bacon, Ovo');
   });
 
   it('o link codifica acentos, quebras de linha, & e #', () => {

@@ -5,6 +5,7 @@ import { LIMITS, PAYMENTS, buildOrderMessage, clean, orderTotals, parseMoney, va
 import { esc } from '../utils/dom.js';
 import { formatCents } from '../utils/money.js';
 import { openStatus } from '../utils/hours.js';
+import { summaryText } from '../utils/options.js';
 
 // O que a pessoa preencheu fica guardado enquanto a página está aberta,
 // para não precisar digitar de novo ao fechar e abrir a sacola.
@@ -14,19 +15,19 @@ const stepIcon = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${
 const MINUS = stepIcon('M5 12h14');
 const PLUS = stepIcon('M12 5v14M5 12h14');
 
-const lineHTML = ({ item, qty, note, subtotalCents }) => `
+const lineHTML = ({ key, item, qty, note, summary, subtotalCents }) => `
   <li class="bag-line">
     <div class="bag-line__top">
-      <p class="bag-line__name">${esc(item.name)}</p>
+      <p class="bag-line__name">${esc(item.name)}${summary.length ? `<small class="bag-line__opts">${esc(summaryText(summary))}</small>` : ''}</p>
       <p class="bag-line__price">${formatCents(subtotalCents)}</p>
     </div>
     <div class="bag-line__bottom">
       <div class="stepper" role="group" aria-label="Quantidade de ${esc(item.name)}">
-        <button type="button" data-qty="${esc(item.id)}" data-delta="-1" aria-label="${qty === 1 ? 'Remover' : 'Tirar um'} ${esc(item.name)}">${MINUS}</button>
+        <button type="button" data-qty="${esc(key)}" data-delta="-1" aria-label="${qty === 1 ? 'Remover' : 'Tirar um'} ${esc(item.name)}">${MINUS}</button>
         <output aria-live="polite">${qty}</output>
-        <button type="button" data-qty="${esc(item.id)}" data-delta="1" aria-label="Mais um ${esc(item.name)}">${PLUS}</button>
+        <button type="button" data-qty="${esc(key)}" data-delta="1" aria-label="Mais um ${esc(item.name)}">${PLUS}</button>
       </div>
-      <input class="bag-line__note" type="text" data-note="${esc(item.id)}" value="${esc(note)}" maxlength="${NOTE_MAX}"
+      <input class="bag-line__note" type="text" data-note="${esc(key)}" value="${esc(note)}" maxlength="${NOTE_MAX}"
              placeholder="Observação (ex.: sem cebola)" aria-label="Observação para ${esc(item.name)}" />
     </div>
   </li>`;
@@ -124,7 +125,7 @@ export function createBagSheet(store, items, { table = null } = {}) {
     const lines = cartLines(items);
     // Redesenhar a lista apaga o foco; guardamos qual botão estava focado para devolver.
     const focused = document.activeElement?.closest?.('.bag-lines [data-qty]');
-    const focusKey = focused && `[data-qty="${focused.dataset.qty}"][data-delta="${focused.dataset.delta}"]`;
+    const focusKey = focused && `[data-qty="${CSS.escape(focused.dataset.qty)}"][data-delta="${focused.dataset.delta}"]`;
     list.innerHTML = lines.map(lineHTML).join('');
     if (focusKey) (list.querySelector(focusKey) ?? $('[data-close]')).focus();
 
@@ -158,7 +159,7 @@ export function createBagSheet(store, items, { table = null } = {}) {
   list.addEventListener('click', (e) => {
     const button = e.target.closest('[data-qty]');
     if (!button) return;
-    const line = cartLines(items).find((l) => l.item.id === button.dataset.qty);
+    const line = cartLines(items).find((l) => l.key === button.dataset.qty);
     setQty(button.dataset.qty, line.qty + Number(button.dataset.delta));
   });
   list.addEventListener('input', (e) => {
@@ -233,7 +234,7 @@ export function createBagSheet(store, items, { table = null } = {}) {
         address: form.mode === 'entrega' ? clean(form.address, LIMITS.address) : null,
         payment: form.mode === 'mesa' ? null : form.payment,
         change_cents: form.mode !== 'mesa' && form.payment === 'dinheiro' ? parseMoney(form.change) : null,
-        items: lines.map((l) => ({ id: l.item.id, qty: l.qty, note: clean(l.note, NOTE_MAX) })),
+        items: lines.map((l) => ({ id: l.item.id, qty: l.qty, note: clean(l.note, NOTE_MAX), options: l.options })),
       });
       clearCart();
       try {

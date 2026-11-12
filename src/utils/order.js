@@ -1,6 +1,7 @@
 // Pedido: validação do formulário da sacola e montagem da mensagem do WhatsApp.
 // Nada disso é salvo: o nome e o endereço vão direto na mensagem.
 import { formatCents } from './money.js';
+import { summaryText } from './options.js';
 
 export const PAYMENTS = { pix: 'Pix', cartao: 'Cartão (na entrega ou retirada)', dinheiro: 'Dinheiro' };
 export const LIMITS = { name: 60, address: 160 };
@@ -50,6 +51,7 @@ export function buildOrderMessage({ storeName, lines, form, deliveryFeeCents }) 
 
   for (const l of lines) {
     out.push(`${l.qty}x ${l.item.name} · ${formatCents(l.subtotalCents)}`);
+    if (l.summary?.length) out.push(`   ${summaryText(l.summary)}`);
     const note = clean(l.note, 140);
     if (note) out.push(`   Obs.: ${note}`);
   }

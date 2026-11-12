@@ -11,6 +11,116 @@
 -- Liga/desliga os pedidos pelo site. Desligado = a sacola manda a mensagem pelo WhatsApp, como antes.
 alter table public.store_settings add column if not exists online_orders boolean not null default false;
 
+-- ---------- Opções dos pratos (tamanho, sabores, ponto, adicionais, borda) ----------
+-- Mesmo formato e mesma regra de src/utils/options.js:
+-- [{ id, name, min, max, pricing: 'soma'|'maior', choices: [{ id, name, price_cents }] }]
+create or replace function public.valid_options(o jsonb)
+returns boolean
+language plpgsql
+immutable
+set search_path = ''
+as $$
+declare
+  g jsonb;
+  c jsonb;
+  n integer;
+begin
+  if jsonb_typeof(o) <> 'array' or jsonb_array_length(o) > 6 then
+    return false;
+  end if;
+  for g in select value from jsonb_array_elements(o) loop
+    if jsonb_typeof(g) <> 'object'
+       or coalesce(g->>'id', '') !~ '^[a-z0-9-]{1,40}$'
+       or char_length(coalesce(g->>'name', '')) not between 1 and 40
+       or coalesce(g->>'pricing', '') not in ('soma', 'maior')
+       or jsonb_typeof(g->'min') <> 'number' or jsonb_typeof(g->'max') <> 'number'
+       or jsonb_typeof(g->'choices') <> 'array' then
+      return false;
+    end if;
+    n := jsonb_array_length(g->'choices');
+    if n not between 1 and 30 or (g->>'min')::numeric < 0 or (g->>'max')::numeric < 1
+       or (g->>'min')::numeric > (g->>'max')::numeric or (g->>'max')::numeric > n then
+      return false;
+    end if;
+    for c in select value from jsonb_array_elements(g->'choices') loop
+      if jsonb_typeof(c) <> 'object'
+         or coalesce(c->>'id', '') !~ '^[a-z0-9-]{1,40}$'
+         or char_length(coalesce(c->>'name', '')) not between 1 and 40
+         or jsonb_typeof(c->'price_cents') <> 'number'
+         or (c->>'price_cents')::numeric not between 0 and 100000 then
+        return false;
+      end if;
+    end loop;
+  end loop;
+  return true;
+end;
+$$;
+
+alter table public.menu_items add column if not exists options jsonb not null default '[]'::jsonb
+  check (public.valid_options(options));
+
+-- Preço extra de UMA unidade + resumo das escolhas. Lança itens_invalidos se a escolha não vale.
+create or replace function public.preco_opcoes(p_options jsonb, p_sel jsonb, out extra integer, out resumo jsonb)
+language plpgsql
+immutable
+set search_path = ''
+as $$
+declare
+  g jsonb;
+  ch jsonb;
+  picked jsonb;
+  k text;
+  v_id text;
+  cnt integer;
+  prices integer[];
+  names text[];
+begin
+  extra := 0;
+  resumo := '[]'::jsonb;
+  if p_sel is null or jsonb_typeof(p_sel) = 'null' then
+    p_sel := '{}'::jsonb;
+  end if;
+  if jsonb_typeof(p_sel) <> 'object' then
+    raise exception 'itens_invalidos' using errcode = 'P0001';
+  end if;
+  for k in select jsonb_object_keys(p_sel) loop
+    if not exists (select 1 from jsonb_array_elements(p_options) x where x.value->>'id' = k) then
+      raise exception 'itens_invalidos' using errcode = 'P0001';
+    end if;
+  end loop;
+  for g in select value from jsonb_array_elements(p_options) loop
+    picked := coalesce(p_sel->(g->>'id'), '[]'::jsonb);
+    if jsonb_typeof(picked) <> 'array' then
+      raise exception 'itens_invalidos' using errcode = 'P0001';
+    end if;
+    cnt := jsonb_array_length(picked);
+    if cnt < (g->>'min')::integer or cnt > (g->>'max')::integer
+       or (select count(distinct value) from jsonb_array_elements_text(picked)) <> cnt then
+      raise exception 'itens_invalidos' using errcode = 'P0001';
+    end if;
+    prices := '{}';
+    names := '{}';
+    for v_id in select value from jsonb_array_elements_text(picked) loop
+      ch := (select value from jsonb_array_elements(g->'choices') where value->>'id' = v_id limit 1);
+      if ch is null then
+        raise exception 'itens_invalidos' using errcode = 'P0001';
+      end if;
+      prices := prices || (ch->>'price_cents')::integer;
+      names := names || (ch->>'name');
+    end loop;
+    if cnt > 0 then
+      -- 'maior': meio a meio cobra o sabor mais caro; 'soma': cada adicional soma
+      extra := extra + case when g->>'pricing' = 'maior'
+                            then (select max(x) from unnest(prices) x)
+                            else (select sum(x) from unnest(prices) x)::integer end;
+      resumo := resumo || jsonb_build_array(jsonb_build_object('group', g->>'name', 'choices', to_jsonb(names)));
+    end if;
+  end loop;
+end;
+$$;
+
+revoke all on function public.preco_opcoes(jsonb, jsonb) from public;
+
 create table public.orders (
   id             uuid primary key default gen_random_uuid(),
   code           integer not null,                       -- número curto do dia (#1, #2…) que a cozinha chama
@@ -20,7 +130,7 @@ create table public.orders (
   address        text check (char_length(address) between 1 and 160),
   payment        text check (payment in ('pix', 'cartao', 'dinheiro')),
   change_cents   integer check (change_cents between 1 and 1000000),
-  items          jsonb not null,                         -- [{ id, name, qty, price_cents, note }] com o preço do banco
+  items          jsonb not null,                         -- [{ id, name, qty, price_cents, note, options }] com o preço do banco
   subtotal_cents integer not null check (subtotal_cents > 0),
   fee_cents      integer not null default 0 check (fee_cents >= 0),
   total_cents    integer not null check (total_cents > 0),
@@ -120,6 +230,9 @@ declare
   v_id uuid;
   v_client text;
   v_ip text;
+  v_extra integer;
+  v_resumo jsonb;
+  v_unit integer;
 begin
   select * into v_store from public.store_settings where store_settings.id = 1;
   if not coalesce(v_store.online_orders, false) then
@@ -166,9 +279,12 @@ begin
     if char_length(v_note) > 140 then
       raise exception 'itens_invalidos' using errcode = 'P0001';
     end if;
+    -- Opções (tamanho, sabores, adicionais): o preço de cada uma vem do cardápio, não do navegador
+    select o.extra, o.resumo into v_extra, v_resumo from public.preco_opcoes(v_item.options, v_line->'options') o;
+    v_unit := v_item.price_cents + v_extra;
     v_items := v_items || jsonb_build_object('id', v_item.id, 'name', v_item.name, 'qty', v_qty,
-                                            'price_cents', v_item.price_cents, 'note', v_note);
-    v_subtotal := v_subtotal + v_item.price_cents * v_qty;
+                                            'price_cents', v_unit, 'note', v_note, 'options', v_resumo);
+    v_subtotal := v_subtotal + v_unit * v_qty;
   end loop;
 
   if p_mode = 'entrega' then

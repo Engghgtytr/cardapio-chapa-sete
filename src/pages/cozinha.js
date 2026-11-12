@@ -3,6 +3,7 @@ import { NEXT, STATUS, listOpenOrders, onOrdersChange, setOrderStatus, todaySumm
 import { supabase } from '../services/supabase.js';
 import { esc } from '../utils/dom.js';
 import { formatCents } from '../utils/money.js';
+import { summaryText } from '../utils/options.js';
 
 // Tela da cozinha (#/cozinha): feita para tablet ou TV na parede. Pedidos chegam na hora,
 // com apito, e um toque avança o status. Só abre para admin (na demonstração, abre direto).
@@ -28,7 +29,7 @@ function card(o) {
       </header>
       <p class="ticket__name">${esc(o.customer_name)}</p>
       <ul class="ticket__items">
-        ${o.items.map((l) => `<li><b>${esc(l.qty)}x</b> ${esc(l.name)}${l.note ? `<em>${esc(l.note)}</em>` : ''}</li>`).join('')}
+        ${o.items.map((l) => `<li><b>${esc(l.qty)}x</b> ${esc(l.name)}${l.options?.length ? `<span class="ticket__opts">${esc(summaryText(l.options))}</span>` : ''}${l.note ? `<em>${esc(l.note)}</em>` : ''}</li>`).join('')}
       </ul>
       ${o.mode === 'entrega' ? `<p class="ticket__addr">${esc(o.address)}</p>` : ''}
       <footer class="ticket__foot">

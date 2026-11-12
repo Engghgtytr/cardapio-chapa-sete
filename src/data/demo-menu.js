@@ -33,17 +33,26 @@ export const DEMO_CATEGORIES = [
 
 const item = (id, category_id, name, description, price_cents, position, extra = {}) => ({
   id, category_id, name, description, price_cents, position,
-  image: id, available: true, active: true, featured: false, ...extra,
+  image: id, available: true, active: true, featured: false, options: [], ...extra,
 });
 
+// Opções de exemplo (mesmo formato de src/utils/options.js e da coluna options do banco)
+const PONTO = { id: 'ponto', name: 'Ponto da carne', min: 1, max: 1, pricing: 'soma', choices: [
+  { id: 'ao-ponto', name: 'Ao ponto', price_cents: 0 }, { id: 'bem-passado', name: 'Bem passado', price_cents: 0 }] };
+const ADICIONAIS = { id: 'adicionais', name: 'Adicionais', min: 0, max: 3, pricing: 'soma', choices: [
+  { id: 'bacon', name: 'Bacon', price_cents: 400 }, { id: 'cheddar-extra', name: 'Cheddar extra', price_cents: 300 },
+  { id: 'ovo', name: 'Ovo', price_cents: 300 }, { id: 'cebola-caramelizada', name: 'Cebola caramelizada', price_cents: 300 }] };
+const TAMANHO_BATATA = { id: 'tamanho', name: 'Tamanho', min: 1, max: 1, pricing: 'soma', choices: [
+  { id: 'media', name: 'Média (200 g)', price_cents: 0 }, { id: 'grande', name: 'Grande (400 g)', price_cents: 1200 }] };
+
 export const DEMO_ITEMS = [
-  item('burger-classico', 'burgers', 'Clássico Smash', 'Dois smash de 90 g, cheddar, picles, cebola e molho da casa no brioche.', 2990, 1, { featured: true }),
-  item('burger-bacon', 'burgers', 'Bacon Smash', 'Dois smash de 90 g, cheddar em dobro e bacon crocante.', 3490, 2, { featured: true }),
-  item('burger-salada', 'burgers', 'Salada Smash', 'Um smash de 120 g, cheddar, alface, tomate e cebola roxa.', 3190, 3),
-  item('burger-onion', 'burgers', 'Onion Smash', 'Dois smash de 90 g, cheddar e cebola crispy por dentro.', 3390, 4, { featured: true }),
+  item('burger-classico', 'burgers', 'Clássico Smash', 'Dois smash de 90 g, cheddar, picles, cebola e molho da casa no brioche.', 2990, 1, { featured: true, options: [ADICIONAIS] }),
+  item('burger-bacon', 'burgers', 'Bacon Smash', 'Dois smash de 90 g, cheddar em dobro e bacon crocante.', 3490, 2, { featured: true, options: [PONTO, ADICIONAIS] }),
+  item('burger-salada', 'burgers', 'Salada Smash', 'Um smash de 120 g, cheddar, alface, tomate e cebola roxa.', 3190, 3, { options: [PONTO, ADICIONAIS] }),
+  item('burger-onion', 'burgers', 'Onion Smash', 'Dois smash de 90 g, cheddar e cebola crispy por dentro.', 3390, 4, { featured: true, options: [PONTO, ADICIONAIS] }),
   item('burger-frango', 'burgers', 'Frango Crispy', 'Sobrecoxa empanada, salada de repolho e maionese de alho.', 3290, 5),
   item('burger-veggie', 'burgers', 'Veggie Smash', 'Burger de grão-de-bico, cheddar, rúcula e tomate.', 3290, 6),
-  item('batata-frita', 'acompanhamentos', 'Batata frita', 'Porção de 200 g, com sal e páprica.', 1690, 1),
+  item('batata-frita', 'acompanhamentos', 'Batata frita', 'Porção de 200 g, com sal e páprica.', 1690, 1, { options: [TAMANHO_BATATA] }),
   item('batata-cheddar-bacon', 'acompanhamentos', 'Batata cheddar e bacon', 'A batata da casa coberta com cheddar cremoso e bacon.', 2490, 2),
   item('onion-rings', 'acompanhamentos', 'Onion rings', 'Oito anéis de cebola empanados, com maionese da casa.', 1990, 3),
   item('refrigerante', 'bebidas', 'Refrigerante lata', 'Lata de 350 ml. Pergunte os sabores no WhatsApp.', 790, 1),

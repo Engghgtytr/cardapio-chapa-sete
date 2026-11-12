@@ -5,6 +5,7 @@
 //     aparelho (ex.: a "cozinha" aberta ao lado) recebem na hora.
 import { supabase } from './supabase.js';
 import { readDemoData } from './demo-data.js';
+import { priceWithOptions } from '../utils/options.js';
 
 export const STATUS = {
   novo: 'Recebido',
@@ -57,11 +58,17 @@ function writeDemo(orders) {
 export function priceDemoOrder(input, { store, items }) {
   const byId = new Map(items.filter((i) => i.active && i.available).map((i) => [i.id, i]));
   if (!Array.isArray(input.items) || input.items.length < 1 || input.items.length > 30) throw new Error(ERRORS.itens_invalidos);
-  const lines = input.items.map(({ id, qty, note }) => {
+  const lines = input.items.map(({ id, qty, note, options }) => {
     const item = byId.get(id);
     if (!item) throw new Error(ERRORS.item_indisponivel);
     if (!Number.isInteger(qty) || qty < 1 || qty > 20) throw new Error(ERRORS.itens_invalidos);
-    return { id, name: item.name, qty, price_cents: item.price_cents, note: String(note ?? '').trim().slice(0, 140) || null };
+    let priced;
+    try {
+      priced = priceWithOptions(item, options);
+    } catch {
+      throw new Error(ERRORS.itens_invalidos);
+    }
+    return { id, name: item.name, qty, price_cents: priced.unitCents, note: String(note ?? '').trim().slice(0, 140) || null, options: priced.summary };
   });
   const subtotal = lines.reduce((s, l) => s + l.price_cents * l.qty, 0);
   const fee = input.mode === 'entrega' ? store.delivery_fee_cents : 0;

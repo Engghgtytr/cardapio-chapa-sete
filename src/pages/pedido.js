@@ -3,6 +3,7 @@ import { STATUS, getOrderStatus, onOrdersChange } from '../services/orders.js';
 import { supabase } from '../services/supabase.js';
 import { esc } from '../utils/dom.js';
 import { formatCents } from '../utils/money.js';
+import { summaryText } from '../utils/options.js';
 
 // Acompanhar o pedido (#/pedido?id=…): a pessoa vê o número e o status mudando
 // sozinho até ficar pronto. Não mostra nome nem endereço (o banco nem devolve).
@@ -50,7 +51,7 @@ export function renderPedido(app, params) {
       </ol>
       <p class="track__hint ${o.status === 'cancelado' ? 'is-error' : ''}" role="status">${HINT[o.status] ?? ''}</p>
       <ul class="track__items">
-        ${o.items.map((l) => `<li><span>${esc(l.qty)}x ${esc(l.name)}${l.note ? `<small>Obs.: ${esc(l.note)}</small>` : ''}</span></li>`).join('')}
+        ${o.items.map((l) => `<li><span>${esc(l.qty)}x ${esc(l.name)}${l.options?.length ? `<small>${esc(summaryText(l.options))}</small>` : ''}${l.note ? `<small>Obs.: ${esc(l.note)}</small>` : ''}</span></li>`).join('')}
       </ul>
       <p class="track__total">Total <strong>${formatCents(o.total_cents)}</strong></p>
       <p class="muted track__note">Esta página se atualiza sozinha. Pode deixar aberta.</p>

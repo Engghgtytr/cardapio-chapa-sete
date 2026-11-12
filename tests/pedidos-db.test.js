@@ -99,6 +99,38 @@ describe('fazer pedido (visitante)', () => {
   });
 });
 
+describe('opções do prato (tamanho, sabores, adicionais)', () => {
+  const OPCOES = [
+    { id: 'ponto', name: 'Ponto', min: 1, max: 1, pricing: 'soma', choices: [{ id: 'ao-ponto', name: 'Ao ponto', price_cents: 0 }, { id: 'bem', name: 'Bem passado', price_cents: 0 }] },
+    { id: 'extras', name: 'Adicionais', min: 0, max: 2, pricing: 'soma', choices: [{ id: 'bacon', name: 'Bacon', price_cents: 400 }, { id: 'ovo', name: 'Ovo', price_cents: 300 }] },
+    { id: 'sabores', name: 'Sabores', min: 0, max: 2, pricing: 'maior', choices: [{ id: 'a', name: 'A', price_cents: 100 }, { id: 'b', name: 'B', price_cents: 900 }] },
+  ];
+  beforeAll(() => asOwner('update public.menu_items set options = $1::jsonb where id = $2', [JSON.stringify(OPCOES), 'burger-bacon']));
+
+  it('soma adicionais, cobra o sabor mais caro e guarda o resumo no pedido', async () => {
+    const [{ id }] = await pedido(null, { items: [{ id: 'burger-bacon', qty: 2, options: { ponto: ['bem'], extras: ['bacon', 'ovo'], sabores: ['a', 'b'] } }] });
+    const [o] = await asOwner('select items, subtotal_cents from public.orders where id = $1', [id]);
+    expect(o.items[0].price_cents).toBe(3490 + 400 + 300 + 900);
+    expect(o.subtotal_cents).toBe((3490 + 1600) * 2);
+    expect(o.items[0].options).toEqual([
+      { group: 'Ponto', choices: ['Bem passado'] }, { group: 'Adicionais', choices: ['Bacon', 'Ovo'] }, { group: 'Sabores', choices: ['A', 'B'] }]);
+  });
+
+  it('recusa obrigatório faltando, escolha inventada, repetida, a mais e grupo inventado', async () => {
+    const ruim = (options) => pedido(null, { items: [{ id: 'burger-bacon', qty: 1, options }] });
+    await expect(ruim({})).rejects.toThrow(/itens_invalidos/);
+    await expect(ruim({ ponto: ['cru'] })).rejects.toThrow(/itens_invalidos/);
+    await expect(ruim({ ponto: ['bem'], extras: ['bacon', 'bacon'] })).rejects.toThrow(/itens_invalidos/);
+    await expect(ruim({ ponto: ['bem', 'ao-ponto'] })).rejects.toThrow(/itens_invalidos/);
+    await expect(ruim({ ponto: ['bem'], desconto: ['x'] })).rejects.toThrow(/itens_invalidos/);
+  });
+
+  it('o banco recusa opções mal montadas no cardápio', async () => {
+    await expect(asOwner('update public.menu_items set options = $1::jsonb where id = $2',
+      [JSON.stringify([{ id: 'x', name: 'X', min: 2, max: 1, pricing: 'soma', choices: [{ id: 'a', name: 'A', price_cents: 0 }] }]), 'burger-classico'])).rejects.toThrow(/check/);
+  });
+});
+
 describe('freio contra spam', () => {
   it('o mesmo aparelho só faz 5 pedidos em 10 minutos; outro aparelho continua pedindo', async () => {
     const ip = (addr) => asOwner(`select set_config('request.headers', $1, false)`, [JSON.stringify({ 'cf-connecting-ip': addr, 'x-forwarded-for': '1.1.1.1' })]);

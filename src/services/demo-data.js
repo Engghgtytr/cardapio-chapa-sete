@@ -4,7 +4,7 @@
 import { DEMO_CATEGORIES, DEMO_ITEMS, DEMO_STORE } from '../data/demo-menu.js';
 
 const KEY = 'chapa7:demo';
-const VERSION = 1;
+const VERSION = 2; // 2 = pratos com opções (tamanho, ponto, adicionais)
 
 const defaults = () => structuredClone({ store: DEMO_STORE, categories: DEMO_CATEGORIES, items: DEMO_ITEMS });
 
